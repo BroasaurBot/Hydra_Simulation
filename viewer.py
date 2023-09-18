@@ -14,7 +14,7 @@ class Viewer:
         self.running = True
         self.clock = pygame.time.Clock()
         self.font = pygame.font.SysFont("Arial" , 18 , bold = True)
-        self.mouse_size = 10
+        self.mouse_size = 20
         self.mouse_state = "UP"
 
     def run(self):

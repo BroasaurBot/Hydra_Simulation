@@ -5,19 +5,19 @@ TIMESCALE = 1
 CELL_RADIUS = 4
 CELL_COLOR = (0, 0, 0)
 
-HYDRA_HEIGHT = 10
+HYDRA_HEIGHT = 20
 CELL_HEIGHT = 20
 CELL_WIDTH = 60
 
 MUSCLE_WIDTH = 2
 
-ENDODERM_STIFFNESS = 50000
-ENDODERM_DAMPING = 50000
+ENDODERM_STIFFNESS = 1000
+ENDODERM_DAMPING = 1000
 ENDODERM_LENGTH = CELL_WIDTH
 ENDODERM_COLOR = (0, 255, 0)
 
-ECTODERM_STIFFNESS = 50000
-ECTODERM_DAMPING = 50000
+ECTODERM_STIFFNESS = 1000
+ECTODERM_DAMPING = 1000
 ECTODERM_LENGTH = CELL_HEIGHT
 ECTODERM_COLOR = (255, 0, 0)
 
@@ -28,6 +28,7 @@ class Simulation:
 
     def __init__(self):
         self.space = pymunk.Space()
+        #self.space.damping = 0.1
         self.display = None
 
         self.cells = []
@@ -90,13 +91,15 @@ class Simulation:
 
             self.hydra.layers.append((c1, c2))
             self.hydra.muscles.extend([c1,c2])
+        
+        self.hydra.volume = self.hydra.calc_volume()
     
     def mouse_muscles(self, pos, radius, amount):
         for cell in self.cells:
             x = pos[0] - cell.pos()[0]
             y = pos[1] - cell.pos()[1]
             if x ** 2 + y ** 2 < radius ** 2:
-                cell.body.apply_force_at_local_point((1000 * -amount, 0))
+                cell.body.apply_force_at_local_point((0, 2000 * -amount))
 
 class Cell:
     def __init__(self, x, y, space): 
@@ -130,10 +133,6 @@ class Muscle:
         joint1 = pymunk.DampedSpring(self.body1, self.body2,
                                     anchor_a=(0, 0), anchor_b=(0, 0),
                                     rest_length=length, stiffness=stiffness, damping=damping)
-
-        joint2 = pymunk.constraints.DampedRotarySpring(self.body1, self.body2,
-                        rest_angle=0, stiffness=stiffness, damping=damping)
-        space.add(joint2)
         space.add(joint1)
 
     def draw(self, display):

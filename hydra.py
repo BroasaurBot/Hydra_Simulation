@@ -7,6 +7,7 @@ class Hydra:
         self.cells = []
         self.layers = []
         self.muscles = []
+        self.volume = -1
 
     def calc_volume(self):
         vol = 0
