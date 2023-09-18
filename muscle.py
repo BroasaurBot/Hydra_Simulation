@@ -29,27 +29,12 @@ class Muscle:
         self.stiffness = stiffness
         self.excitation = 0.0001
 
-        self.muscle = OpenMuscle(0)
-        self.length0 = length
-
     def draw(self, display):
         width = int(MUSCLE_WIDTH * (self.stiffness / MAX_STIFFNESS))
         display.draw_line(self.body1.position, self.body2.position, self.color, width)
     
     def step(self, steps_size):
-        curr_length = self.muscle_length()
-        rel_length = curr_length / self.length
-
-        change_length = curr_length - self.length0
-        vel = change_length / steps_size
-
-        force = self.muscle.calc_force(self.excitation, rel_length, vel, steps_size)
-        print(force)
-
-        #self.body1.apply_force_at_local_point(-force * self.muscle_vec(), (0, 0))
-        #self.body2.apply_force_at_local_point(force * self.muscle_vec(), (0, 0))
-
-        self.length0 = curr_length
+        pass
 
     
     def muscle_length(self):
