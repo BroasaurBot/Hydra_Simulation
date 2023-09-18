@@ -1,5 +1,6 @@
 import pymunk
 import hydra
+from muscle import Muscle, EndodermMuscle, EctodermMuscle
 
 TIMESCALE = 1
 CELL_RADIUS = 4
@@ -9,7 +10,6 @@ HYDRA_HEIGHT = 20
 CELL_HEIGHT = 20
 CELL_WIDTH = 60
 
-MUSCLE_WIDTH = 2
 
 ENDODERM_STIFFNESS = 1000
 ENDODERM_DAMPING = 1000
@@ -43,6 +43,10 @@ class Simulation:
             return self.display.screen_size
 
     def step(self, steps_size):
+
+        for muscle in self.muscles:
+            muscle.step(TIMESCALE / steps_size)
+
         self.space.step(TIMESCALE /steps_size)
 
     def draw(self):
@@ -121,29 +125,4 @@ class CellFixed(Cell):
     def __init__(self, x, y, space):
         super().__init__(x, y, space)
         self.body.body_type = pymunk.Body.STATIC
-
-class Muscle:
-    def __init__(self, cell1, cell2, space, stiffness, damping, length, color):
-        self.body1 = cell1.body
-        self.body2 = cell2.body
-        self.color = color
-        self.length = length
-        self.stiffness = stiffness
-
-        joint1 = pymunk.DampedSpring(self.body1, self.body2,
-                                    anchor_a=(0, 0), anchor_b=(0, 0),
-                                    rest_length=length, stiffness=stiffness, damping=damping)
-        space.add(joint1)
-
-    def draw(self, display):
-        width = int(MUSCLE_WIDTH * (self.stiffness / MAX_STIFFNESS))
-        display.draw_line(self.body1.position, self.body2.position, self.color, width)
-
-class EndodermMuscle(Muscle):
-    def __init__(self, cell1, cell2, space):
-        super().__init__(cell1, cell2, space, ENDODERM_STIFFNESS, ENDODERM_DAMPING, ENDODERM_LENGTH, ENDODERM_COLOR)
-        
-class EctodermMuscle(Muscle):
-    def __init__(self, cell1, cell2, space):
-        super().__init__(cell1, cell2, space, ECTODERM_STIFFNESS, ECTODERM_DAMPING, ECTODERM_LENGTH, ECTODERM_COLOR)
 
