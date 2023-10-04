@@ -66,8 +66,6 @@ class Hydra:
         else:
             self.status = "MOVING"
 
-
-
     def calc_area(self):
         vol = 0
         for i in range(1, len(self.layers)):
@@ -112,7 +110,6 @@ class Hydra:
 
 
     def push_walls(self, pressure, step_size):
-
         for layer in self.layers:
             cell1 = layer[0]
             cell2 = layer[1]

@@ -1,5 +1,4 @@
 import pymunk
-from openmuscle import Muscle as OpenMuscle
 
 MUSCLE_WIDTH = 2
 CELL_HEIGHT = 20
