@@ -1,39 +1,25 @@
 import pymunk
+import pygame
 import hydra
+from cell import Cell, CellFixed
 from muscle import Muscle, EndodermMuscle, EctodermMuscle
 
-TIMESCALE = 1
-CELL_RADIUS = 4
-CELL_COLOR = (0, 0, 0)
-
-HYDRA_HEIGHT = 20
-CELL_HEIGHT = 20
-CELL_WIDTH = 60
-
-
-ENDODERM_STIFFNESS = 1000
-ENDODERM_DAMPING = 1000
-ENDODERM_LENGTH = CELL_WIDTH
-ENDODERM_COLOR = (0, 255, 0)
-
-ECTODERM_STIFFNESS = 1000
-ECTODERM_DAMPING = 1000
-ECTODERM_LENGTH = CELL_HEIGHT
-ECTODERM_COLOR = (255, 0, 0)
-
-MAX_STIFFNESS = max(ENDODERM_STIFFNESS, ECTODERM_STIFFNESS)
-
-
+PLATFORM_SIZE = 300
 class Simulation:
 
     def __init__(self):
         self.space = pymunk.Space()
-        #self.space.damping = 0.1
         self.display = None
+        self.TIMESCALE = 1
+        self.time = 0
+        self.space.damping = 0.8
 
         self.cells = []
         self.muscles = []
         self.hydra = None
+
+        floor = pymunk.Segment(self.space.static_body, (-PLATFORM_SIZE, 0), (PLATFORM_SIZE, 0), 2)
+        self.space.add(floor)
 
     def addDisplay(self, display):
         self.display = display
@@ -42,20 +28,21 @@ class Simulation:
         if self.display is not None:
             return self.display.screen_size
 
-    def step(self, steps_size):
-
+    def step(self, fps):
+        self.space.step(self.TIMESCALE /fps)
         for muscle in self.muscles:
-            muscle.step(TIMESCALE / steps_size)
+            muscle.step(self.TIMESCALE /fps)
+        if self.hydra is not None:
+            self.hydra.step(self.TIMESCALE / fps)
+        
+        self.time += self.TIMESCALE / fps
 
-        self.space.step(TIMESCALE /steps_size)
 
     def draw(self):
         if self.display is not None:
-            for cell in self.cells:
-                cell.draw(self.display)
-            
-            for muscle in self.muscles:
-                muscle.draw(self.display)
+            self.display.draw_log(f"Time: {self.time:.2f}", (255, 0, 0))
+            self.hydra.draw(self.display)
+        
 
     def addCell(self, x, y):
         cell = Cell(x, y, self.space)
@@ -68,61 +55,33 @@ class Simulation:
         return cell
     
     def addEndodermMuscle(self, cell1, cell2):
-        self.muscles.append(EndodermMuscle(cell1, cell2, self.space))
+        muscle = EndodermMuscle(cell1, cell2, self.space)
+        self.muscles.append(muscle)
+        return muscle
     
-    def addEctodermMuscle(self, cell1, cell2):
-        self.muscles.append(EctodermMuscle(cell1, cell2, self.space))
+    def addEctodermMuscle(self, cell1, cell2, side):
+        muscle = EctodermMuscle(cell1, cell2, side, self.space)
+        self.muscles.append(muscle)
+        return muscle
     
     def createHydra(self):
-        self.hydra = hydra.Hydra(HYDRA_HEIGHT)
-
-        left =   - (CELL_WIDTH / 2)
-        right = (CELL_WIDTH / 2)
-
-        fc1 = self.addCellFixed(left, 2)
-        fc2 = self.addCellFixed(right, 2)
-        self.hydra.cells.extend([fc1, fc2])
-        self.hydra.layers.append((fc1, fc2))
-
-        for i in range(1, self.hydra.height):
-            c1 = self.addCell(left, i * CELL_HEIGHT + 2)
-            c2 = self.addCell(right, i * CELL_HEIGHT + 2)
-            self.hydra.muscles.append(self.addEndodermMuscle(c1, c2))
-
-            b1, b2 = self.hydra.layers[i - 1]
-            self.hydra.muscles.append(self.addEctodermMuscle(b1, c1))
-            self.hydra.muscles.append(self.addEctodermMuscle(b2, c2))
-
-            self.hydra.layers.append((c1, c2))
-            self.hydra.muscles.extend([c1,c2])
+        self.hydra = hydra.Hydra(self.space)
+        self.cells.extend(self.hydra.cells)
+        self.muscles.extend(self.hydra.endoderm_muscles)
+        self.muscles.extend(self.hydra.ectoderm_muscles)
         
-        self.hydra.volume = self.hydra.calc_volume()
     
     def mouse_muscles(self, pos, radius, amount):
-        for cell in self.cells:
-            x = pos[0] - cell.pos()[0]
-            y = pos[1] - cell.pos()[1]
-            if x ** 2 + y ** 2 < radius ** 2:
-                cell.body.apply_force_at_local_point((0, 2000 * -amount))
+        for muscle in self.muscles:
 
-class Cell:
-    def __init__(self, x, y, space): 
-        self.body = pymunk.Body()
-        self.body.position = x, y
-        self.shape = pymunk.Circle(self.body, CELL_RADIUS)
-        self.shape.elasticity = 0
-        self.shape.density = 1
-        space.add(self.body, self.shape)
-
-    def draw(self, display):
-        display.draw_circle(self.body.position, CELL_RADIUS, CELL_COLOR)
+            if muscle.muscle_contained(pos, radius):
+                muscle.excite(amount)
     
-    def pos(self):
-        x, y = self.body.position
-        return (x, y)
+    def handle_input(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_c:
+                self.hydra.contract()
+            if event.key == pygame.K_e:
+                self.hydra.elongate()
 
-class CellFixed(Cell):
-    def __init__(self, x, y, space):
-        super().__init__(x, y, space)
-        self.body.body_type = pymunk.Body.STATIC
-
+                

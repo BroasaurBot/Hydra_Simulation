@@ -8,18 +8,24 @@ class Viewer:
 
     def __init__(self, simulation):
         pygame.init()
-        self.display = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
-        self.simulation = simulation
-        self.simulation.addDisplay(Display(SCREEN_SIZE, (0, 0), self.display))
-        self.running = True
+        self.py_display = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("Arial" , 18 , bold = True)
+        self.FPS = FPS
+
+        self.simulation = simulation
+        self.display = Display(SCREEN_SIZE, (0, 0), self.py_display)
+        self.simulation.addDisplay(self.display)
+
+        self.running = True
         self.mouse_size = 20
         self.mouse_state = "UP"
+        self.speed_up = False
 
     def run(self):
         while self.running:
-            self.clock.tick(FPS)
+            if not self.speed_up:
+                self.clock.tick(self.FPS)
+
             self.handle_events()
             self.handle_mouse()
             self.simulation.step(FPS)
@@ -39,6 +45,15 @@ class Viewer:
                     self.mouse_state = "RIGHT"
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.mouse_state = "UP"
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_s:
+                    self.speed_up = True
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_s:
+                    self.speed_up = False
+
+            self.simulation.handle_input(event)
+
     
     def handle_mouse(self):
         if self.mouse_size < 0:
@@ -53,31 +68,39 @@ class Viewer:
         x, y = pygame.mouse.get_pos()
         return x - SCREEN_SIZE / 2, SCREEN_SIZE - y
 
-    def draw_mouse(self):
-        pygame.draw.circle(self.display, (90, 90, 90), pygame.mouse.get_pos(), self.mouse_size, 1)
-
     def draw(self):
-        self.display.fill((255, 255, 255))
+        self.py_display.fill((255, 255, 255))
+        self.display.draw_log("FPS: " + str(int(self.clock.get_fps())), (255, 0, 0))
         self.simulation.draw()
-        self.draw_mouse()
-        self.fps_counter()
+        self.display.draw_circle(self.mouse_pos(), self.mouse_size, (0, 0, 0), thickness=1)
         pygame.display.update()
-    
-    def fps_counter(self):
-        fps = self.font.render(str(int(self.clock.get_fps())), True, pygame.Color("coral"))
-        self.display.blit(fps, (10, 10))
+        self.display.clear_log()
 
 class Display:
         def __init__(self, screen_size, pos, display):
             self.screen_size = screen_size
             self.display = display
             self.pos = pos
+            self.font_size = 18
+            self.font = pygame.font.SysFont("Arial" , self.font_size , bold = True)
+            self.log_y = 0
 
-        def draw_circle(self, pos, radius, color):
-            pygame.draw.circle(self.display, color, self.convert_coordinates(pos), radius, 2)
+        def draw_circle(self, pos, radius, color, thickness=2):
+            pygame.draw.circle(self.display, color, self.convert_coordinates(pos), radius, thickness)
         
         def draw_line(self, pos1, pos2, color, width):
             pygame.draw.line(self.display, color, self.convert_coordinates(pos1), self.convert_coordinates(pos2), width)
+        
+        def draw_text(self, text, pos, color):
+            text = self.font.render(text, True, color)
+            self.display.blit(text, pos) 
+        
+        def draw_log(self, text, color):
+            self.draw_text(text, (self.font_size, self.log_y), color)
+            self.log_y += self.font_size + 2
+        
+        def clear_log(self):
+            self.log_y = 0
 
 
         def convert_coordinates(self, pos):
