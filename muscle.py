@@ -4,21 +4,21 @@ MUSCLE_WIDTH = 2
 CELL_HEIGHT = 20
 CELL_WIDTH = 60
 
-ENDODERM_STIFFNESS = 1000
-ENDODERM_MAX_FORCE = 20000
-ENDODERM_DAMPING = 1000
+ENDODERM_STIFFNESS = 10
+ENDODERM_MAX_FORCE = 2000
+ENDODERM_DAMPING = 100
 ENDODERM_LENGTH = CELL_WIDTH
 ENDODERM_COLOR = (0, 255, 0)
 
-ECTODERM_STIFFNESS = 1000
-ECTODERM_MAX_FORCE = 10000
-ECTODERM_DAMPING = 1000
+ECTODERM_STIFFNESS = 10
+ECTODERM_MAX_FORCE = 1000
+ECTODERM_DAMPING = 100
 ECTODERM_LENGTH = CELL_HEIGHT
 ECTODERM_COLOR = (255, 0, 0)
 
 MAX_STIFFNESS = max(ENDODERM_STIFFNESS, ECTODERM_STIFFNESS)
 
-EXCITATION_DECAY_RATE = 10
+EXCITATION_DECAY_RATE = 2
 
 class Muscle:
     def __init__(self, cell1, cell2, space, stiffness, damping, length, max_force, color):
@@ -50,24 +50,28 @@ class Muscle:
     
     def step(self, steps_size):
         activation =self.step_excitation(steps_size)
+        force = activation * self.max_force  * 100
 
-        self.body1.apply_force_at_local_point(self.muscle_vec() * activation, (0, 0))
-        self.body2.apply_force_at_local_point(-self.muscle_vec() * activation, (0, 0))
+        print(force, self.max_force)
+
+        self.body1.apply_force_at_local_point(self.muscle_vec() * force * steps_size, (0, 0))
+        self.body2.apply_force_at_local_point(-self.muscle_vec() * force * steps_size, (0, 0))
 
     def excite(self, excitation, duration):
         self.excitation_duration = duration
         self.excitation += (excitation / duration)
 
     def step_excitation(self, steps_size):
-        self.excit_duration -= steps_size
+        self.excitation_duration -= steps_size
         if self.excitation_duration < 0:
             self.excitation_duration = 0
             self.excitation = 0
 
-        self.activation += self.excitation / steps_size
-        self.activation = min(self.activation, self.max_force)
+        self.activation += self.excitation * steps_size
 
         self.activation -= self.activation * EXCITATION_DECAY_RATE * steps_size
+        if abs(self.activation) < 0.01:
+            self.activation = 0
         return self.activation
 
 

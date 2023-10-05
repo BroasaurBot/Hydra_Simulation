@@ -75,7 +75,7 @@ class Simulation:
         for muscle in self.muscles:
 
             if muscle.muscle_contained(pos, radius):
-                muscle.excite(amount)
+                muscle.excite(amount, 1)
     
     def handle_input(self, event):
         if event.type == pygame.KEYDOWN:

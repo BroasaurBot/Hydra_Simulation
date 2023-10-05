@@ -137,11 +137,11 @@ class Hydra:
         
     def contract(self):
         for muscle in self.ectoderm_muscles:
-            muscle.excite(-10)
+            muscle.excite(-1, 4)
     
     def elongate(self):
         for muscle in self.endoderm_muscles:
-            muscle.excite(-10)
+            muscle.excite(-1, 4)
         
 
 
