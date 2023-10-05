@@ -31,7 +31,11 @@ class Muscle:
         self.length = length
         self.stiffness = stiffness
         self.max_force = max_force
+
+        self.excitation_duration = 0
         self.excitation = 0
+        self.activation = 0
+        
 
         joint1 = pymunk.DampedSpring(self.body1, self.body2,
                                             anchor_a=(0, 0), anchor_b=(0, 0),
@@ -45,21 +49,27 @@ class Muscle:
 
     
     def step(self, steps_size):
-        activation = min(self.excitation * self.max_force, self.max_force)
+        activation =self.step_excitation(steps_size)
+
         self.body1.apply_force_at_local_point(self.muscle_vec() * activation, (0, 0))
         self.body2.apply_force_at_local_point(-self.muscle_vec() * activation, (0, 0))
 
-        self.excitation_decay(steps_size)
+    def excite(self, excitation, duration):
+        self.excitation_duration = duration
+        self.excitation += (excitation / duration)
 
-    def excite(self, excitation):
-        self.excitation += excitation
+    def step_excitation(self, steps_size):
+        self.excit_duration -= steps_size
+        if self.excitation_duration < 0:
+            self.excitation_duration = 0
+            self.excitation = 0
 
-    def excitation_decay(self, steps_size):
-        if abs(self.excitation) > 0:
-            self.excitation -= self.excitation * EXCITATION_DECAY_RATE * steps_size
+        self.activation += self.excitation / steps_size
+        self.activation = min(self.activation, self.max_force)
 
-            if abs(self.excitation) < 0.001:
-                self.excitation = 0
+        self.activation -= self.activation * EXCITATION_DECAY_RATE * steps_size
+        return self.activation
+
 
     def push_muscle(self, force):
         self.body1.apply_force_at_local_point(force, (0, 0))

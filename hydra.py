@@ -108,7 +108,6 @@ class Hydra:
         p2 = self.layers[layer][1].body.position
         return (p1 + p2) / 2
 
-
     def push_walls(self, pressure, step_size):
         for layer in self.layers:
             cell1 = layer[0]

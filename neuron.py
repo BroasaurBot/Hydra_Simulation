@@ -86,5 +86,4 @@ if __name__ == "__main__":
     n1.update_activation()
 
     print(n1)
-
  
