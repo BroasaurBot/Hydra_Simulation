@@ -17,7 +17,7 @@ class Viewer:
         self.simulation.addDisplay(self.display)
 
         self.running = True
-        self.mouse_size = 20
+        self.mouse_size = 0
         self.mouse_state = "UP"
         self.speed_up = False
 
@@ -41,8 +41,10 @@ class Viewer:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self.mouse_state = "LEFT"
+                    self.simulation.mouse_click(self.mouse_pos(), self.mouse_size, 0.08)
                 elif event.button == 3:
                     self.mouse_state = "RIGHT"
+                    self.simulation.mouse_click(self.mouse_pos(), self.mouse_size, -0.08)
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.mouse_state = "UP"
             elif event.type == pygame.KEYDOWN:
@@ -58,11 +60,10 @@ class Viewer:
     def handle_mouse(self):
         if self.mouse_size < 0:
             self.mouse_size = 0
-
-        if self.mouse_state == "LEFT": 
-            self.simulation.mouse_muscles(self.mouse_pos(), self.mouse_size, 1)
-        elif self.mouse_state == "RIGHT":
-            self.simulation.mouse_muscles(self.mouse_pos(), self.mouse_size, -1)
+        if self.mouse_state == "LEFT":
+            self.simulation.mouse_simulation(self.mouse_pos(), self.mouse_size, 0.02)
+        if self.mouse_state == "RIGHT":
+            self.simulation.mouse_simulation(self.mouse_pos(), self.mouse_size, -0.02)
     
     def mouse_pos(self):
         x, y = pygame.mouse.get_pos()
@@ -70,7 +71,7 @@ class Viewer:
 
     def draw(self):
         self.py_display.fill((255, 255, 255))
-        self.display.draw_log("FPS: " + str(int(self.clock.get_fps())), (255, 0, 0))
+        #self.display.draw_log("FPS: " + str(int(self.clock.get_fps())), (255, 0, 0))
         self.simulation.draw()
         self.display.draw_circle(self.mouse_pos(), self.mouse_size, (0, 0, 0), thickness=1)
         pygame.display.update()
@@ -86,7 +87,10 @@ class Display:
             self.log_y = 0
 
         def draw_circle(self, pos, radius, color, thickness=2):
-            pygame.draw.circle(self.display, color, self.convert_coordinates(pos), radius, thickness)
+            try:
+                pygame.draw.circle(self.display, color, self.convert_coordinates(pos), radius, thickness)
+            except:
+                pass
         
         def draw_line(self, pos1, pos2, color, width):
             pygame.draw.line(self.display, color, self.convert_coordinates(pos1), self.convert_coordinates(pos2), width)
@@ -110,6 +114,7 @@ class Display:
 if __name__ == "__main__":
     simulation = simulation.Simulation()
     simulation.createHydra()
+    simulation.hydra.load_brain("./learning/model.pt")
     print("Simulation created")
     viewer = Viewer(simulation)
     print("Running viewer")

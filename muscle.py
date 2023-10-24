@@ -4,17 +4,17 @@ MUSCLE_WIDTH = 2
 CELL_HEIGHT = 20
 CELL_WIDTH = 60
 
-ENDODERM_STIFFNESS = 10
-ENDODERM_MAX_FORCE = 2000
-ENDODERM_DAMPING = 100
+ENDODERM_STIFFNESS = 500
+ENDODERM_MAX_FORCE = 1500
+ENDODERM_DAMPING = 1000
 ENDODERM_LENGTH = CELL_WIDTH
-ENDODERM_COLOR = (0, 255, 0)
+ENDODERM_COLOR = (255, 0, 0)
 
-ECTODERM_STIFFNESS = 10
-ECTODERM_MAX_FORCE = 1000
-ECTODERM_DAMPING = 100
+ECTODERM_STIFFNESS = 1000
+ECTODERM_MAX_FORCE = 1500
+ECTODERM_DAMPING = 1000
 ECTODERM_LENGTH = CELL_HEIGHT
-ECTODERM_COLOR = (255, 0, 0)
+ECTODERM_COLOR = (0, 255, 0)
 
 MAX_STIFFNESS = max(ENDODERM_STIFFNESS, ECTODERM_STIFFNESS)
 
@@ -35,7 +35,6 @@ class Muscle:
         self.excitation_duration = 0
         self.excitation = 0
         self.activation = 0
-        
 
         joint1 = pymunk.DampedSpring(self.body1, self.body2,
                                             anchor_a=(0, 0), anchor_b=(0, 0),
@@ -50,9 +49,7 @@ class Muscle:
     
     def step(self, steps_size):
         activation =self.step_excitation(steps_size)
-        force = activation * self.max_force  * 100
-
-        print(force, self.max_force)
+        force = -activation * self.max_force  * 20000
 
         self.body1.apply_force_at_local_point(self.muscle_vec() * force * steps_size, (0, 0))
         self.body2.apply_force_at_local_point(-self.muscle_vec() * force * steps_size, (0, 0))
@@ -70,7 +67,7 @@ class Muscle:
         self.activation += self.excitation * steps_size
 
         self.activation -= self.activation * EXCITATION_DECAY_RATE * steps_size
-        if abs(self.activation) < 0.01:
+        if abs(self.activation) < 0.0001:
             self.activation = 0
         return self.activation
 

@@ -70,20 +70,22 @@ class MotorNeuron(Neuron):
     
     def update_activation(self):
         self.activation = self.temp_activation
-        self.muscle.set_activation(self.activation)
+        if self.parameters.activation_function(self.activation) > 1:
+            print("Muscle activating")
+
+class Ensemble:
+    def __init__(self, name, num_neurons, muscle):
+        self.neurons = [Neuron(NeuronParameters(num_neurons, sigmoid)) for i in range(num_neurons - 1)]
+        self.motor = MotorNeuron(muscle, NeuronParameters(num_neurons - 1, sigmoid))
+
+        self.num_neurons = num_neurons
+        self.name = name
+
+        for i in range(self.num_neurons - 1):
+            self.neurons[i].inputs = [self.neurons
+
+
 
 
 if __name__ == "__main__":
-    n1 = Neuron(NeuronParameters(2, activation_function=relu))
-    n2 = Neuron(NeuronParameters(2))
-    n3 = Neuron(NeuronParameters(2))
-
-    n1.inputs = [n2, n3]
-    n2.inputs = [n1, n3]
-    n3.inputs = [n1, n2]
-
-    n1.calc_activation()
-    n1.update_activation()
-
-    print(n1)
- 
+    e = Ensemble()

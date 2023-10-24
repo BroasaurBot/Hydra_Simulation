@@ -2,6 +2,11 @@ from math import sqrt, pow, log
 from cell import Cell, CellFixed
 from muscle import EndodermMuscle, EctodermMuscle
 import pymunk
+import numpy as np
+
+import torch
+import torch.nn as nn
+from learning.motor_control import MotorControl
 
 WATER_BULK_MODULUS = 2.15 * pow(10, 5)
 
@@ -19,6 +24,8 @@ class Hydra:
         self.endoderm_muscles = []
         self.ectoderm_muscles = []
         self.roof = None
+
+        self.brain = None
 
         self.area = -1
         self.original_head_pos = None
@@ -67,7 +74,7 @@ class Hydra:
             self.status = "MOVING"
 
     def calc_area(self):
-        vol = 0
+        area = 0
         for i in range(1, len(self.layers)):
             l11, l12 = self.layers[i - 1]
             l21, l22 = self.layers[i]
@@ -77,8 +84,8 @@ class Hydra:
             l21 = l21.body.position
             l22 = l22.body.position
 
-            vol += calc_area_quad(l11, l12, l21, l22)
-        return vol
+            area += calc_area_quad(l11, l12, l21, l22)
+        return area
 
     def calc_peri(self):
         peri = 0
@@ -92,7 +99,6 @@ class Hydra:
 
         return (diff1.length + diff2.length) / 2
 
-
     def step(self, step_size):
         self.get_status()
         pressure = self.calc_pressure(self.calc_area())
@@ -101,7 +107,7 @@ class Hydra:
             self.push_walls(pressure, step_size)
 
     def calc_pressure(self, area):
-        return WATER_BULK_MODULUS * log(self.area / area)
+        return - WATER_BULK_MODULUS * log(area / self.area)
 
     def calc_center(self, layer):
         p1 = self.layers[layer][0].body.position
@@ -131,18 +137,48 @@ class Hydra:
         for cell in self.cells:
             cell.draw(display)
 
-        display.draw_log(f"Length: {self.calc_length():.2f}", (0, 0, 0))
-        display.draw_log(f"Pressure: {self.calc_pressure(self.calc_area()):.2f}", (0, 0, 0))
-        display.draw_log(f"Status: {self.status}", (0, 0, 0))
+        #display.draw_log(f"Length: {self.calc_length():.2f}", (0, 0, 0))
+        #display.draw_log(f"Pressure: {self.calc_pressure(self.calc_area()):.2f}", (0, 0, 0))
+        #display.draw_log(f"Status: {self.status}", (0, 0, 0))
         
     def contract(self):
         for muscle in self.ectoderm_muscles:
-            muscle.excite(-1, 4)
+            muscle.excite(0.5, 5)
     
     def elongate(self):
         for muscle in self.endoderm_muscles:
-            muscle.excite(-1, 4)
-        
+            muscle.excite(0.5, 10)
+
+    def play_excitation(self, map):
+        for i in range(HYDRA_HEIGHT - 1):
+            self.ectoderm_muscles[i * 2].excite(map[i][0], 15)
+            self.ectoderm_muscles[i * 2 + 1].excite(map[i][2], 15)
+            self.endoderm_muscles[i].excite(map[i][1], 15)
+
+    def get_excitation(self):
+        map = np.zeros((HYDRA_HEIGHT - 1, 3))
+        for i in range(HYDRA_HEIGHT - 1):
+            map[i][0] = self.ectoderm_muscles[i * 2].activation
+            map[i][2] = self.ectoderm_muscles[i * 2 + 1].activation
+            map[i][1] = self.endoderm_muscles[i].activation
+        return map
+    
+    def play_input(self, activation_map):
+        if self.brain == None:
+            print("")
+            return
+        self.brain.eval()
+        flatten = activation_map.flatten(order="F")
+        response = self.brain(torch.tensor(flatten, dtype=torch.float32))
+
+        map = response.detach().numpy()
+        map = map.reshape((HYDRA_HEIGHT - 1, 3), order='F')
+        self.play_excitation(map)
+        return map
+
+    def load_brain(self, model_state_path):
+        self.brain = MotorControl()
+        self.brain.load_state_dict(torch.load(model_state_path))
 
 
 def calc_area_quad(p11, p12, p21, p22):
